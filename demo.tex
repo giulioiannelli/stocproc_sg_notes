@@ -1,29 +1,410 @@
 % This is a simple sample document.  For more complicated documents take a look in the exercise tab. Note that everything that comes after a % symbol is treated as comment and ignored when the code is compiled.
 
 \documentclass{article} % \documentclass{} is the first command in any LaTeX code.  It is used to define what kind of document you are creating such as an article or a book, and begins the document preamble
+\usepackage{xparse}
 
-\usepackage{amsmath} % \usepackage is a command that allows you to add functionality to your LaTeX code
+\usepackage{mathtools}
+\usepackage{amssymb} 
+    \newcommand{\R}{\mathbb{R}}
+    \newcommand{\E}{\mathbb{E}}
+    \newcommand{\Pbb}{\mathbb{P}}
+    \newcommand{\Id}{\mathbf{I}}
+    \newcommand{\x}{\mathbf{x}}
+    \newcommand{\s}{\mathbf{s}}
+    \newcommand{\y}{\mathbf{y}}
+    \newcommand{\z}{\mathbf{z}}
+    \newcommand{\A}{\mathbf{A}}
+    \newcommand{\Bmat}{\mathbf{B}}
+    \newcommand{\C}{\mathbf{C}}
+    \newcommand{\Q}{\mathbf{Q}}
+    \newcommand{\J}{\mathbf{J}}
+    \newcommand{\D}{\mathbf{D}}
+    \newcommand{\G}{\mathbf{G}}
+    \newcommand{\M}{\mathbf{M}}
+    \newcommand{\Lop}{\mathbf{L}}
+    \newcommand{\slapl}{\mathbf{L}_{\sigma}}         % signed Laplacian
+    \newcommand{\diag}{\operatorname{diag}}
+    \newcommand{\tr}{\operatorname{tr}}
+    \newcommand{\rank}{\operatorname{rank}}
+    \newcommand{\T}{\mathsf{T}}
+    \newcommand{\Ito}{It\^{o}}
+    \newcommand{\Strat}{Stratonovich}
+    \newcommand{\1}{\mathbf{1}}
+    \newcommand{\grad}{\nabla}
+    \newcommand{\h}{\mathbf{h}}
+    \newcommand{\Var}{\operatorname{Var}}
+    \newcommand{\Cov}{\operatorname{Cov}}
+    \newcommand{\W}{W}
+% Define differential operator
+\NewDocumentCommand{\dd}{s o m}{
+  \IfBooleanTF{#1} % Check if * is used
+    {\mathrm{d}#3} % No space for inline form
+    {\IfNoValueTF{#2} % Check if power is given
+      {\mathrm{d}#3} % Normal differential
+      {\mathrm{d}^{#2}#3} % Differential with power
+    }
+}
 
-\title{Simple Sample} % Sets article title
-\author{My Name} % Sets authors name
+% Define total derivative
+\NewDocumentCommand{\dv}{s o m m}{
+  \IfBooleanTF{#1}                     % starred (inline) form
+    {{\mathrm{d}#3}/{\mathrm{d}#4}}  % inline fraction
+    {\IfNoValueTF{#2}                  % non-star, no order
+      {\frac{\mathrm{d}#3}{\mathrm{d}#4}}  % first derivative
+      {\frac{\mathrm{d}^{#2}#3}{\mathrm{d}#4^{#2}}}% higher order
+    }
+}
+
+% Define partial derivative
+\NewDocumentCommand{\pdv}{s o m m}{
+  \IfBooleanTF{#1}                         % starred (inline) form
+    {\tfrac{\partial #3}{\partial #4}}    % inline fraction
+    {\IfNoValueTF{#2}                      % non-star, no order
+      {\frac{\partial #3}{\partial #4}}    % first partial
+      {\frac{\partial^{#2}#3}{\partial #4^{#2}}}% higher order
+    }
+}
+
+
+\usepackage{biblatex} %Imports biblatex package
+\addbibresource{ref.bib} %Import the bibliography file
+
+
+\title{On the Stochastic Process formulation of Spin Glasses and the Structural influence on Non-Ergodicity} % Sets article title
+\author{Giulio Iannelli} % Sets authors name
 \date{\today} % Sets date for date compiled
 
 % The preamble ends with the command \begin{document}
 \begin{document} % All begin commands must be paired with an end command somewhere
 \maketitle % creates title using information in preamble (title, author, date)
 
-\section{Hello World!} % creates a section
+% === Copy-paste LaTeX snippet ===
 
-\textbf{Hello World!} Today I am learning \LaTeX. %notice how the command will end at the first non-alphabet charecter such as the . after \LaTeX
-\LaTeX{} is a great program for writing math. I can write in line math such as $a^2+b^2=c^2$ %$ tells LaTexX to compile as math
-. I can also give equations their own space:
-\begin{equation} % Creates an equation environment and is compiled as math
-  \gamma^2+\theta^2=\omega^2
+% =========================================================
+% Context, objects, and notation
+% =========================================================
+
+Many-body stochastic dynamics provide a unifying language to compare linear relaxational systems with strongly disordered models such as spin glasses. At the level of stochastic differential equations (SDEs), a prototypical linear \(N\)-body system with additive Gaussian forcing is the Ornstein-Uhlenbeck (OU) process \cite{may1972will}
+\[
+\dd x = A x\,\dd t + B\,\dd W,
+\]
+whose key features—Gaussianity, explicit means and covariances, and exponentially fast approach to stationarity—are analytically controlled. In contrast, disordered interacting systems (Edwards-Anderson or Sherrington-Kirkpatrick) exhibit rugged, nonconvex energy landscapes with exponentially many metastable states, aging, and slow relaxations. The present discussion bridges these settings along three axes: (i) linearity versus nonlinearity, clarifying when noise alone can induce effective nonlinear behavior; (ii) ergodicity versus effective non-ergodicity, distinguishing mathematical uniqueness of the invariant measure from physically relevant (often astronomically large) mixing times; and (iii) operator structure, showing how Laplacians—continuous or graph-based, including signed variants—naturally arise both in the Fokker-Planck generator and in the drift of network-coupled dynamics.
+
+On the linear side, when \(A\) is Hurwitz (all eigenvalues have strictly negative real part) the OU flow is ergodic with a unique stationary Gaussian law \(\mathcal{N}(0,\Sigma)\); the covariance \(\Sigma\) solves the continuous Lyapunov equation \(A\Sigma+\Sigma A^{\T}+Q=0\) with \(Q=BB^{\T}\). This connects directly to the Markov generator or Liouville-Fokker-Planck operator: for additive, isotropic noise (\(Q=2D\,I\)) the density \(p(x,t)\) evolves under a convection-diffusion equation where the spatial Laplacian \(\Delta\) appears with diffusion coefficient \(D\), yielding an analytically transparent route to stationarity. In networked systems, the drift often takes the Laplacian form \(-\kappa L x\); for signed interactions one works with the signed Laplacian \(\slapl = D - J\) (with \(D_{ii}=\sum_j |J_{ij}|\)), which is positive semidefinite and encodes frustration through edge signs. Thus Laplacians enter twice: as the second-order diffusion operator in the Fokker-Planck equation and as the first-order coupling operator in the drift.
+
+Noise-induced effective nonlinearities arise when diffusion is state dependent (multiplicative noise) or when constraints or variable eliminations project the flow onto a curved manifold; in both cases the Itô-Stratonovich correction produces a noise-induced drift that is nonlinear in the state, even if the explicit deterministic part is linear. Absent these mechanisms (that is, with additive noise and no constraints), linear SDEs remain linear in both pathwise and distributional senses.
+
+Turning to spin glasses, discrete Ising dynamics (e.g. Glauber) are nonlinear at the level of flip rates, while soft or spherical relaxational versions admit Langevin formulations. For a soft-spin Hamiltonian \(H(s)=-\tfrac12 s^{\T}J s+\sum_i U(s_i)-h^{\T}s\), overdamped Langevin gives
+\[
+\dd s = -\grad H(s)\,\dd t + \sqrt{2T}\,\dd W = (J s - U'(s) + h)\,\dd t + \sqrt{2T}\,\dd W.
+\]
+Here nonlinearity can stem from on-site \(U\), from a spherical constraint implemented by a time-dependent Lagrange multiplier, or from multiplicative noise choices. Even when the SDE is linear (\(U\equiv0\) and no constraint), the disordered spectrum and high barriers of \(H\) generate metastability and aging—hence effective non-ergodicity on physical timescales—despite the formal uniqueness of the invariant law for finite \(N\). This reconciles the common intuition that spin glasses are “nonlinear and non-ergodic” with the precise statement that linear Langevin forms exist but inherit slow mixing from the landscape geometry. Throughout, the Laplacian viewpoint clarifies how coupling structure (including signs) shapes both relaxation modes and diffusive spreading in probability space.
+
+\paragraph{State space and noise.}
+Let \(x(t)\in\mathbb{R}^{N}\) and let \(W(t)\in\mathbb{R}^{m}\) be an \(m\)-dimensional standard Wiener process on a filtered probability space. We consider
+\begin{equation}
+\label{eq:generalSDE}
+\dd x(t) = f(x(t))\,\dd t + G(x(t))\,\dd W(t),
 \end{equation}
-If I do not leave any blank lines \LaTeX{} will continue  this text without making it into a new paragraph.  Notice how there was no indentation in the text after equation (1).
-Also notice how even though I hit enter after that sentence and here $\downarrow$
-\LaTeX{} formats the sentence without any break.  Also   look  how      it   doesn't     matter          how    many  spaces     I put     between       my    words.
+with drift \(f:\mathbb{R}^{N}\to\mathbb{R}^{N}\) and diffusion matrix \(G:\mathbb{R}^{N}\to\mathbb{R}^{N\times m}\). The diffusion tensor is \(Q(x)=G(x)G(x)^{\T}\). Additive noise means \(G(x)\equiv B\) is constant; multiplicative noise means \(G\) depends on \(x\), producing state-dependent diffusion and, under Stratonovich calculus, a noise-induced drift.
 
-For a new essay I can leave a blank space in my code.
+\paragraph{Linear additive-noise benchmark (OU), Fokker-Planck, and Laplacians.}
+The OU process is
+\begin{equation}
+\label{eq:OU}
+\dd x = A x\,\dd t + B\,\dd W, \qquad A\in\mathbb{R}^{N\times N},\ B\in\mathbb{R}^{N\times m},\ Q=BB^{\T}.
+\end{equation}
+Its mild solution is \(x(t)=e^{tA}x(0)+\int_0^t e^{(t-s)A}B\,\dd W(s)\); thus \(\mathbb{E}[x(t)]=e^{tA}\mathbb{E}[x(0)]\) and \(\operatorname{Cov}[x(t)]=\int_0^t e^{sA}Q\,e^{sA^{\T}}\dd s\). The process admits a unique stationary Gaussian law \(\mathcal{N}(0,\Sigma)\) iff \(A\) is Hurwitz (all eigenvalues satisfy \(\Re\lambda<0\)); then
+\begin{equation}
+\label{eq:Lyapunov}
+A\Sigma+\Sigma A^{\T}+Q=0
+\quad\Longleftrightarrow\quad
+\Sigma=\int_0^{\infty} e^{sA}Q\,e^{sA^{\T}}\dd s,
+\end{equation}
+and \(\Sigma\succ0\) when the Kalman controllability condition holds, that is \(\operatorname{rank}[B,AB,\dots,A^{N-1}B]=N\). The continuous Lyapunov equation \eqref{eq:Lyapunov} characterizes the stationary covariance of a stable linear SDE; more generally, for any positive definite \(P\) the matrix inequality \(A^{\T}P+PA\prec0\) is a Lyapunov certificate of Hurwitz stability.
+
+The probability density \(p(x,t)\) solves the Fokker-Planck equation
+\begin{equation}
+\label{eq:FP}
+\pdv{p(x,t)}{t} = -\div(A x\, p) + \frac{1}{2}\div(Q\,\grad p).
+\end{equation}
+For isotropic additive noise \(Q=2D\,I\), the second term reduces to the spatial Laplacian:
+\begin{equation}
+\label{eq:FP-Laplace}
+\pdv{p}{t} = -\div(A x\, p) + D\,\Delta p,
+\end{equation}
+so the continuous Laplacian \(\Delta\) appears as the diffusion operator in law space. In network-coupled linear dynamics the drift often has graph-Laplacian form,
+\begin{equation}
+\label{eq:graph-drift}
+\dv{x}{t} = -\kappa L x \quad\text{or}\quad \dv{x}{t}=-\kappa \slapl x,
+\end{equation}
+where \(L\) is the unsigned Laplacian of a weighted graph and \(\slapl=D-J\) the signed Laplacian built from couplings \(J\) with \(D_{ii}=\sum_j |J_{ij}|\). This inserts a discrete Laplacian into the drift, shaping modal relaxation; the Fokker-Planck still carries the continuous Laplacian \(D\Delta\) when the driving noise is isotropic.
+
+
+
+
+
+
+% =========================================================
+% Noise-induced nonlinearities
+% =========================================================
+\subsection*{Can a noise induce nonlinearities?}
+Yes. Two mathematically distinct mechanisms generate \emph{effective} nonlinearities even when the explicit drift is linear.
+
+\paragraph{(i) Multiplicative noise and \Ito--\Strat{} correction.}
+Consider
+\begin{equation}
+\label{eq:multNoise}
+\dd\x \;=\; \A\x\,\dd t \;+\; \G(\x)\,\dd \W \quad \text{(\Ito)}.
+\end{equation}
+Writing the same physical model in \Strat{} form gives
+\begin{equation}
+\label{eq:Strat}
+\dd\x \;=\; \Big(\A\x \;+\; \frac{1}{2}\,\mathbf{b}(\x)\Big)\dd t \;+\; \G(\x)\circ\dd \W,
+\end{equation}
+with the \emph{noise-induced drift}
+\begin{equation}
+\label{eq:noiseInducedDrift}
+\mathbf{b}_{i}(\x)\;=\;\sum_{k=1}^{m}\sum_{j=1}^{N} \G_{jk}(\x)\,\partial_{x_{j}}\G_{ik}(\x),
+\qquad i=1,\dots,N.
+\end{equation}
+If $\G$ depends on $\x$ (multiplicative noise), then $\mathbf{b}(\x)$ is generally \emph{nonlinear} in $\x$, creating effective nonlinear dynamics despite a linear $\A\x$.
+
+\paragraph{(ii) Constraints and elimination of fast variables.}
+Suppose dynamics evolve on a constraint manifold $\mathcal{M}=\{\x:\,c(\x)=0\}$, enforced by a Lagrange multiplier $\lambda(t)$:
+\begin{equation}
+\label{eq:constraintSDE}
+\dd \x \;=\; \A\x\,\dd t \;-\;\lambda(t)\,\grad c(\x)\,\dd t \;+\; \Bmat\,\dd \W,\qquad c(\x)=0.
+\end{equation}
+Because $\lambda(t)$ depends on $\x$ to keep $c(\x)=0$, the projected dynamics on $\mathcal{M}$ are \emph{nonlinear} even when $\A$ and $\Bmat$ are constant. Likewise, adiabatic elimination of fast noisy coordinates yields state-dependent effective diffusion $\G_{\mathrm{eff}}(\x)$ and the correction \eqref{eq:noiseInducedDrift}.
+
+\paragraph{Additive Gaussian noise alone.}
+If $\G(\x)\equiv \Bmat$ is constant and no constraints or eliminations are present, then \eqref{eq:OU} remains linear; the law is Gaussian and no dynamical nonlinearity is created by noise.
+
+% =========================================================
+% Dependence on the structure of A
+% =========================================================
+\subsection*{Is linear-noise behavior independent of the structure of $\A$?}
+No. Stability, covariance, and ergodicity depend on spectral and geometric properties of $\A$ jointly with how noise enters through $\Bmat$.
+
+\paragraph{Stationarity and covariance.}
+A stationary law exists iff $\A$ is Hurwitz. The stationary covariance solves \eqref{eq:Lyapunov}; its uniqueness and definiteness depend on the controllability of $(\A,\Bmat)$.
+
+\paragraph{Mode-by-mode view.}
+Diagonalize $\A=\M \Lambda \M^{-1}$; in modal coordinates $\y=\M^{-1}\x$,
+\[
+\dd \y \;=\; \Lambda \y\,\dd t \;+\; \underbrace{\M^{-1}\Bmat}_{\tilde{\Bmat}}\,\dd \W.
+\]
+Any mode $i$ with $\Re\lambda_i\ge 0$ or not directly/noisily excited (columns of $\tilde{\Bmat}$) affects both stability and mixing. Hence the ``structure of $\A$'' is decisive.
+
+% =========================================================
+% Linear dynamics yet non-ergodic?
+% =========================================================
+\subsection*{Can a linear system be non-ergodic?}
+Yes. For \eqref{eq:OU}:
+\begin{itemize}
+\item If $\A$ is not Hurwitz (e.g.\ zero or positive real-part eigenvalues), no stationary distribution exists $\Rightarrow$ non-ergodic.
+\item If $\A$ is Hurwitz but $(\A,\Bmat)$ is not controllable, the invariant law is supported on a proper subspace; the process is not ergodic on $\R^{N}$ (although it may be ergodic on the reachable subspace).
+\end{itemize}
+Even when a unique invariant measure exists, large metastable barriers (cf.\ spin glasses) can make mixing times astronomically large; in finite $N$ the chain is ergodic, but \emph{effective} ergodicity is broken on physical timescales.
+
+% =========================================================
+% Spin-glass dynamics and Langevin forms
+% =========================================================
+\subsection*{Spin glasses (EA/SK): dynamics, linearity, and ergodicity}
+
+\paragraph{Hamiltonians.}
+For Ising spins $s_i\in\{\pm1\}$ on a graph, the Edwards--Anderson (EA) Hamiltonian is
+\begin{equation}
+\label{eq:EA}
+H_{\mathrm{EA}}(\s) \;=\; -\sum_{\langle i,j\rangle} J_{ij}\, s_i s_j \;-\; \sum_i h_i s_i,
+\end{equation}
+with short-range couplings $J_{ij}$ (often symmetric) and field $\h$. The Sherrington--Kirkpatrick (SK) model is the fully connected mean-field analogue (typically $J_{ij}\sim \mathcal{N}(0,1/N)$).
+
+\paragraph{Discrete-spin (Glauber) dynamics.}
+A standard Markovian dynamics flips spins with rates depending on local fields $h_i^{\mathrm{loc}}(\s)=\sum_j J_{ij}s_j + h_i$, e.g.
+\begin{equation}
+\label{eq:Glauber}
+w_i(\s \to \s^{(i)}) \;=\; \tfrac{1}{2}\big[1 - s_i \tanh(\beta h_i^{\mathrm{loc}}(\s))\big],
+\end{equation}
+which is \emph{nonlinear} in $\s$ (via $\tanh$). In the large-$N$ limit, this leads to nonlinear mean-field equations for magnetizations.
+
+\paragraph{Continuous ``soft-spin'' / spherical relaxational dynamics.}
+To write a Langevin equation, one replaces $s_i\in\{\pm1\}$ by continuous variables $s_i\in\R$ and chooses an energy
+\begin{equation}
+\label{eq:softspin}
+H(\s) \;=\; -\frac{1}{2}\,\s^{\T}\J\s \;+\; \sum_{i} U(s_i) \;-\; \h^{\T}\s,
+\end{equation}
+with an on-site confining potential (e.g.\ $U(s)=\tfrac{\alpha}{4}s^4$). Overdamped Langevin (Model A) is
+\begin{equation}
+\label{eq:LangevinSoft}
+\dd \s \;=\; -\grad H(\s)\,\dd t \;+\; \sqrt{2T}\,\dd \W 
+\;=\; \Big(\J\s - U'(\s) + \h\Big)\dd t \;+\; \sqrt{2T}\,\dd \W,
+\end{equation}
+where $U'(\s)$ acts componentwise. With $U\equiv 0$ this is linear; with quartic $U$ it is nonlinear. 
+
+The \emph{spherical model} enforces $\sum_i s_i^2 = N$ by a Lagrange multiplier $\lambda(t)$:
+\begin{equation}
+\label{eq:spherical}
+\dd \s \;=\; \big(\J - \lambda(t)\Id\big)\s\,\dd t \;+\; \sqrt{2T}\,\dd \W,
+\qquad \sum_i s_i^2 \equiv N.
+\end{equation}
+Because $\lambda(t)$ is determined by $\s(t)$ to maintain the constraint, \eqref{eq:spherical} is \emph{nonlinear} (unless $\lambda$ is a constant determined a priori).
+
+\paragraph{Rugged energy landscape and dynamics.}
+For random $\J$, $H$ is non-convex with exponentially many critical points. In Langevin dynamics this yields metastability and, below a critical temperature, aging and violation of time-translation invariance. In finite $N$ the process has a unique invariant measure (with appropriate $U$), but barrier heights scale with $N$ and mixing becomes unobservably slow.
+
+
+% =========================================================
+% Signed Laplacian representation and relation to J
+% =========================================================
+\subsection*{Can the Langevin equation be written in terms of a (signed) graph Laplacian of $J_{ij}$?}
+
+\paragraph{Signed Laplacian.}
+Let $\J=(J_{ij})$ be a symmetric (possibly signed) weight matrix with zero diagonal. Define signs $\sigma_{ij}=\operatorname{sign}(J_{ij})\in\{-1,0,1\}$ and absolute weights $w_{ij}=|J_{ij}|$. The \emph{signed degree} is
+\[
+d_i \;=\; \sum_{j=1}^N |J_{ij}|.
+\]
+Define the \emph{signed Laplacian}
+\begin{equation}
+\label{eq:signedL}
+\slapl \;:=\; \D - \J, 
+\qquad \D:=\diag(d_1,\dots,d_N).
+\end{equation}
+Then for all $\mathbf{v}\in\R^N$,
+\begin{equation}
+\label{eq:signedQuadratic}
+\mathbf{v}^{\T}\slapl \mathbf{v} \;=\; \frac{1}{2}\sum_{i,j} |J_{ij}|\,\big(v_i - \sigma_{ij} v_j\big)^2 \;\ge 0,
+\end{equation}
+so $\slapl$ is positive semidefinite even with signed couplings.
+
+\paragraph{Rewriting the quadratic interaction.}
+The EA/SK quadratic form is 
+\(
+-\tfrac{1}{2}\,\s^{\T}\J\s
+\).
+Using $\slapl=\D-\J$,
+\begin{equation}
+\label{eq:decomp}
+-\frac{1}{2}\,\s^{\T}\J\s 
+\;=\; -\frac{1}{2}\,\s^{\T}(\D-\slapl)\s
+\;=\; \underbrace{-\frac{1}{2}\,\s^{\T}\D\s}_{\text{on-site quadratic}} \;+\; \underbrace{\frac{1}{2}\,\s^{\T}\slapl\s}_{\text{graph (signed) smoothness}}.
+\end{equation}
+Hence, up to a diagonal term, random couplings can be represented through the signed Laplacian.
+
+\paragraph{Gradient (drift) in Laplacian form.}
+For the soft-spin energy \eqref{eq:softspin} with $U\equiv 0$ and $\h=\mathbf{0}$, $\grad H(\s)=-\J\s$. Using \eqref{eq:signedL},
+\begin{equation}
+\label{eq:gradLapl}
+-\grad H(\s) \;=\; \J\s \;=\; (\D-\slapl)\s \;=\; -\slapl\s \;+\; \D\s.
+\end{equation}
+Therefore an overdamped Langevin dynamics can be written as
+\begin{equation}
+\label{eq:LangevinLapl}
+\dd \s \;=\; \big(-\kappa\,\slapl\,\s \;-\; \mu\,\s \;-\; U'(\s) \;+\; \h\big)\dd t \;+\; \sqrt{2T}\,\dd \W,
+\end{equation}
+where the constants $\kappa,\mu$ collect the relative weights of the Laplacian and diagonal terms (e.g.\ $\kappa=1$, $\mu=-1$ reproduces \eqref{eq:gradLapl}). 
+
+\emph{Spherical case:} the diagonal contribution $\D\s$ in \eqref{eq:gradLapl} can be absorbed into the time-dependent constraint via $\lambda(t)$:
+\begin{equation}
+\label{eq:sphericalLapl}
+\dd \s \;=\; \big(-\kappa\,\slapl - \lambda(t)\Id\big)\s\,\dd t \;+\; \sqrt{2T}\,\dd \W, 
+\qquad \sum_i s_i^2=N,
+\end{equation}
+making the interaction purely Laplacian plus a global (constraint) shift.
+
+\paragraph{Graph Ginzburg--Landau (GL) viewpoint.}
+An alternative, fully Laplacian formulation is to choose an energy
+\begin{equation}
+\label{eq:graphGL}
+\mathcal{F}(\s) \;=\; \frac{\kappa}{2}\,\s^{\T}\slapl\s \;+\; \sum_i V(s_i) \;-\; \h^{\T}\s,
+\end{equation}
+with a double-well $V$; then
+\begin{equation}
+\label{eq:GLdynamics}
+\dd \s \;=\; -\kappa\,\slapl\,\s\,\dd t \;-\; V'(\s)\,\dd t \;+\; \h\,\dd t \;+\; \sqrt{2T}\,\dd \W.
+\end{equation}
+Frustration (signs of $J_{ij}$) is encoded in $\slapl$; nonlinearity arises through $V'$.
+
+% =========================================================
+% Fokker-Planck and detailed balance
+% =========================================================
+\subsection*{Fokker--Planck and detailed balance}
+For \eqref{eq:LangevinSoft} with additive noise, the density $p(\s,t)$ satisfies
+\begin{equation}
+\partial_t p \;=\; \sum_i \partial_{s_i}\big(\partial_{s_i}H\, p\big) \;+\; T \sum_i \partial_{s_i}^2 p.
+\end{equation}
+When $U$ confines sufficiently and $T>0$, the invariant measure is Gibbs:
+\begin{equation}
+p_{\mathrm{eq}}(\s) \;\propto\; \exp\!\Big(-\tfrac{1}{T}\,H(\s)\Big).
+\end{equation}
+Rugged $H$ yields metastability: mean transition times between wells scale as $\exp(\Delta H/T)$ (Kramers law).
+
+With multiplicative noise, the Fokker--Planck operator includes state-dependent diffusion; the \Ito{} and \Strat{} formulations differ by the drift correction \eqref{eq:noiseInducedDrift} and thus by the invariant measure unless compensated in $f$.
+
+% =========================================================
+% Answers to the guiding questions
+% =========================================================
+\subsection*{Concise answers to the guiding questions}
+
+\begin{itemize}
+\item \textbf{Can a noise induce nonlinearities?} 
+Yes. Multiplicative Gaussian noise produces a \emph{noise-induced drift} \eqref{eq:noiseInducedDrift}, which is nonlinear in general; constraints/elimination also induce nonlinear effective dynamics. Additive Gaussian noise alone does not add nonlinearities.
+
+\item \textbf{In the Langevin equation with Gaussian noise, are there nonlinearities for $\x\in\R^{N}$ large $N$?} 
+If the noise is additive and the drift $\A\x$ is linear, the SDE remains linear (OU). Nonlinearities arise from state-dependent diffusion, constraints, or a nonlinear potential (e.g.\ $U$ or $V$).
+
+\item \textbf{Is this independent of the structure of $\A$?}
+No. Stability, covariance (Lyapunov \eqref{eq:Lyapunov}), and ergodicity depend on the spectrum and eigenstructure of $\A$ and how $\Bmat$ excites the modes (controllability).
+
+\item \textbf{Can a linear system be non-ergodic?}
+Yes. If $\A$ is not Hurwitz or $(\A,\Bmat)$ is not controllable, ergodicity on $\R^{N}$ fails. Even with a unique invariant measure, metastability may prevent effective equilibration on physical timescales.
+
+\item \textbf{Is the EA spin-glass dynamics writable as a Langevin equation?}
+For discrete Ising spins, the standard dynamics is Glauber \eqref{eq:Glauber} (nonlinear Markov chain). A \emph{Langevin} form is natural for soft or spherical spins \eqref{eq:LangevinSoft}--\eqref{eq:spherical}, yielding additive-noise gradient flow in a rugged potential.
+
+\item \textbf{``Non-ergodic but linear'' vs ``nonlinear'':}
+With $U\equiv 0$ and no spherical constraint, \eqref{eq:LangevinSoft} is linear in $\s$. With a spherical constraint, the dynamics are nonlinearly projected via $\lambda(t)$. Glauber/mean-field equations are nonlinear (e.g.\ $\tanh$). Non-ergodicity in spin glasses is primarily due to the complex energy landscape, not a bare linear/ non-linear dichotomy.
+
+\item \textbf{How does the rugged $H(\s)$ reflect in the Langevin equation?}
+Through $\grad H(\s)$: many wells/saddles create long-lived metastable regions and aging; escape times scale like $\exp(\Delta H/T)$. The Fokker--Planck operator inherits multiple quasi-stationary states.
+
+\item \textbf{Can the Langevin equation be rewritten with the discrete Laplacian of the graph defined by $J_{ij}$?}
+Yes: define the signed Laplacian $\slapl=\D-\J$ \eqref{eq:signedL}. Then the drift $-\grad H=-\J\s$ decomposes as $-\kappa\,\slapl\,\s - \mu\,\s$ \eqref{eq:LangevinLapl}. In spherical form the diagonal shift is absorbed into $\lambda(t)$ \eqref{eq:sphericalLapl}, yielding a clean Laplacian-driven flow on the signed graph.
+\end{itemize}
+
+% =========================================================
+% Optional: practical summaries
+% =========================================================
+\subsection*{Practical templates}
+
+\paragraph{OU (linear additive):}
+\[
+\dd \x = \A\x\,\dd t + \Bmat\,\dd\W,
+\quad
+\A\ \text{Hurwitz},\ 
+\A\Sigma+\Sigma\A^\T+\Bmat\Bmat^\T=0.
+\]
+
+\paragraph{Soft-spin EA with quartic on-site:}
+\[
+\dd \s = \big(\J\s - \alpha\,\s^{\circ 3} + \h\big)\dd t + \sqrt{2T}\,\dd \W.
+\]
+
+\paragraph{Signed-graph GL:}
+\[
+\dd \s = -\kappa\,\slapl\,\s\,\dd t - V'(\s)\,\dd t + \sqrt{2T}\,\dd \W,
+\quad
+\slapl=\D-\J,\ \
+\D_{ii}=\sum_j |J_{ij}|.
+\]
+
+\paragraph{Spherical (constraint-induced nonlinearity):}
+\[
+\dd \s = \big(-\kappa\,\slapl - \lambda(t)\Id\big)\s\,\dd t + \sqrt{2T}\,\dd \W,\qquad \sum_i s_i^2=N.
+\]
+
+
+\printbibliography
 
 \end{document} % This is the end of the document
